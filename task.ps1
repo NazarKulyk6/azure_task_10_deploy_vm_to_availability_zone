@@ -1,7 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-# Region: use a location that supports availability zones for VMs (see task README; e.g. uksouth).
-# UK West is fine for non-zonal VMs but not for zone placement — keep this aligned with the exercise.
+# Region: any zone-capable region (README); adjust if subscription hits B1s capacity in a region.
 # If your subscription blocks Standard_B1s or zone capacity, that is an account limit; the script still matches the spec.
 $location = "uksouth"
 $resourceGroupName = "mate-azure-task-10"
@@ -46,17 +45,21 @@ Write-Host "Creating SSH key resource $sshKeyName ..."
 New-AzSshKey -Name $sshKeyName -ResourceGroupName $resourceGroupName -Location $location -PublicKey $sshKeyPublicKey
 
 for ($i = 0; $i -lt $vmNames.Count; $i++) {
-    Write-Host "Creating VM $($vmNames[$i]) in zone $($vmZones[$i]) ..."
-    New-AzVM `
-        -ResourceGroupName $resourceGroupName `
-        -Name $vmNames[$i] `
-        -Location $location `
-        -Image $vmImage `
-        -Size $vmSize `
-        -SubnetName $subnetName `
-        -VirtualNetworkName $virtualNetworkName `
-        -SecurityGroupName $networkSecurityGroupName `
-        -SshKeyName $sshKeyName `
-        -Zone $vmZones[$i] `
-        -Credential $cred
+    $vmName = $vmNames[$i]
+    $vmZone = $vmZones[$i]
+    Write-Host "Creating VM $vmName in zone $vmZone ..."
+    $newVmParams = @{
+        ResourceGroupName    = $resourceGroupName
+        Name                 = $vmName
+        Location             = $location
+        Image                = $vmImage
+        Size                 = $vmSize
+        SubnetName           = $subnetName
+        VirtualNetworkName   = $virtualNetworkName
+        SecurityGroupName    = $networkSecurityGroupName
+        SshKeyName           = $sshKeyName
+        Zone                 = $vmZone
+        Credential           = $cred
+    }
+    New-AzVM @newVmParams
 }
